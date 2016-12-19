@@ -18,6 +18,7 @@ jsonapi_headers = {
 def create_user(name):
     r = requests.post(user_uri, headers=jsonapi_headers, data=json.dumps({
         "data": {
+            "type": "User",
             "attributes": {
                 "name": name
             }
@@ -80,7 +81,7 @@ def update_post(post_id, author_id, text):
 
 
 if __name__ == "__main__":
-    #pprint(create_user("Benedikt Schmitt"))
+    pprint(create_user("Benedikt Schmitt"))
     #pprint(update_user("4", "FoobarBaagahz"))
 
     #pprint(update_post_author("1", "7"))

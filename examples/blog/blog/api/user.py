@@ -57,9 +57,9 @@ class UserCollection(jsonapi.handler.Handler):
         )
 
     def post(self, request):
-        NewUserValidator().assert_resource_object(request.json)
+        NewUserValidator().assert_one_resource_object(request.json)
 
-        user = User(name=request.json["attributes"]["name"])
+        user = User(name=request.json["data"]["attributes"]["name"])
         g.sql_session.add(user)
         g.sql_session.commit()
         return jsonapi.response_builder.NewResource(request, data=user)
