@@ -55,6 +55,7 @@ from . import version
 from . import errors
 from . import handler
 from . import response_builder
+from . utilities import jsonapi_id_tuple
 
 
 __all__ = [
@@ -335,10 +336,6 @@ class API(object):
 
     def ensure_identifier(self, obj):
         """
-        .. todo::
-
-            Return a :class:`collections.namedtuple`.
-
         Does the same as :meth:`ensure_identifier_object`, but returns the two
         tuple identifier object instead of the document:
 
@@ -354,12 +351,12 @@ class API(object):
         """
         if isinstance(obj, tuple):
             assert len(obj) == 2
-            return obj
+            return jsonapi_id_tuple(obj[0], obj[1])
         elif isinstance(obj, dict):
-            return (obj["type"], obj["id"])
+            return jsonapi_id_tuple(obj["type"], obj["id"])
         else:
             encoder = self.get_encoder(obj)
-            return (encoder.typename, encoder.id(obj))
+            return jsonapi_id_tuple(encoder.typename, encoder.id(obj))
 
     # Handler
 

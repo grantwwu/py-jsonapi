@@ -31,11 +31,13 @@ modules and situations.
 """
 
 # std
+import collections
 import warnings
 
 
 __all__ = [
     "Symbol",
+    "jsonapi_id_tuple",
     "collect_identifiers",
     "rebase_include",
     "load_relationships_object",
@@ -77,6 +79,14 @@ class Symbol(object):
         return other is not self
 
 
+#: A named tuple for JSON API identifiers:
+#:
+#: .. code-block:: python3
+#:
+#:      jsonapi_id_tuple(type="Article", id="42")
+jsonapi_id_tuple = collections.namedtuple("jsonapi_id_tuple", ["type", "id"])
+
+
 def collect_identifiers(d, with_data=True, with_meta=False):
     """
     Returns all identifers found in the document *d*:
@@ -106,8 +116,6 @@ def collect_identifiers(d, with_data=True, with_meta=False):
     :rtype: set
     :returns:
         A set with all found identifier tuples.
-
-    .. todo:: Returned named tuples.
     """
     ids = set()
     docs = [d]
@@ -121,7 +129,7 @@ def collect_identifiers(d, with_data=True, with_meta=False):
 
         elif isinstance(d, dict):
             if "id" in d and "type" in d:
-                ids.add((d["type"], d["id"]))
+                ids.add(jsonapi_id_tuple(d["type"], d["id"]))
 
             for key, value in d.items():
                 if key == "meta" and not with_meta:
