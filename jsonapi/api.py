@@ -116,6 +116,10 @@ class API(object):
         # NOTE: The routing and request handling is still open for discussion.
         self._handler = dict()
 
+        # This route dictionary maps a url rule (regex) to a handler.
+        # NOTE: The routing and request handling is still open for discussion.
+        self._routes = dict()
+
         #: The global jsonapi object, which is added to each response.
         #:
         #: You can add meta information to the ``jsonapi_object["meta"]``
@@ -298,6 +302,20 @@ class API(object):
             handler.init_api(self)
         return None
 
+    def add_url_rule(self, url_rule, handler):
+        """
+        Adds a url rule to the known routes.
+
+        :arg str url_rule:
+            A regular expression
+        :arg ~jsonapi.handler.Handler handler:
+            A request handler
+        """
+        assert url_rule.startswith("/")
+        url_rule = self._uri + url_rule
+        self._routes[url_rule] = handler
+        return None
+
     # Utilities
 
     def ensure_identifier_object(self, obj):
@@ -323,12 +341,12 @@ class API(object):
             return None
         # Identifier tuple
         elif isinstance(obj, tuple):
-            return {"type": obj[0], "id": obj[1]}
+            return {"type": str(obj[0]), "id": str(obj[1])}
         # JSONapi identifier object
         elif isinstance(obj, dict):
             # The dictionary may contain more keys than only *id* and *type*. So
             # we extract only these two keys.
-            return {"type": obj["type"], "id": obj["id"]}
+            return {"type": str(obj["type"]), "id": str(obj["id"])}
         # obj is a resource
         else:
             encoder = self.get_encoder(obj)
@@ -351,9 +369,9 @@ class API(object):
         """
         if isinstance(obj, tuple):
             assert len(obj) == 2
-            return jsonapi_id_tuple(obj[0], obj[1])
+            return jsonapi_id_tuple(str(obj[0]), str(obj[1]))
         elif isinstance(obj, dict):
-            return jsonapi_id_tuple(obj["type"], obj["id"])
+            return jsonapi_id_tuple(str(obj["type"]), str(obj["id"]))
         else:
             encoder = self.get_encoder(obj)
             return jsonapi_id_tuple(encoder.typename, encoder.id(obj))
@@ -364,6 +382,13 @@ class API(object):
         """
         Returns the handler, which is responsible for the requested endpoint.
         """
+        # Check the custom routes first.
+        for url_rule, handler in self._routes.items():
+            match = re.fullmatch(url_rule, request.parsed_uri.path)
+            if match:
+                request.japi_uri_arguments.update(match.groupdict())
+                return handler
+
         # The regular expressions, which will match the uri path or not.
         escaped_uri = re.escape(self._uri)
         collection_re = escaped_uri\
