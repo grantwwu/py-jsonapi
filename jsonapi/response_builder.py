@@ -39,7 +39,6 @@ from .response import Response
 
 __all__ = [
     "ResponseBuilder",
-    "IncludeMixin",
     "Collection",
     "Resource",
     "NewResource",
@@ -66,16 +65,12 @@ class ResponseBuilder(object):
 
     @property
     def api(self):
-        """
-        The :class:`~jsonapi.api.API`, which handles the :attr:`request`.
-        """
+        """The :class:`~jsonapi.api.API`, which handles the :attr:`request`."""
         return self.__api
 
     @property
     def request(self):
-        """
-        The current request
-        """
+        """The current request."""
         return self.__request
 
     def render(self):
@@ -84,7 +79,7 @@ class ResponseBuilder(object):
         :returns:
             The JSON API response document
         """
-        d = dict()
+        d = {}
         d["jsonapi"] = self.__api.jsonapi_object
         return d
 
@@ -107,34 +102,31 @@ class ResponseBuilder(object):
 
 class IncludeMixin(object):
     """
-    Mixin for fetching all include paths specified in the requests query string.
     """
 
     def __init__(self, included=None):
-        self.included = included or list()
+        """ """
+        self.included = dict()
+        self.included_relationships = dict()
         return None
 
-    def fetch_include(self):
-        """
-        If :attr:`data` contains resources, this method will fetch all related
-        resources.
-        """
-        typename = self.request.japi_uri_arguments["type"]
-        includer = self.api.get_includer(typename, None)
-        if includer is None:
+    def _fetch_include_path(self, resource, path):
+        """ """
+        if not path:
             return None
 
-        data = getattr(self, "data", None) or list()
-        data = data if isinstance(data, list) else [self.data]
+        relname, *path = path
 
-        included = includer.fetch_paths(
-            data, self.request.japi_include, self.request
-        )
-        self.included.extend(included)
+        schema = self.api.get_schema(resource)
+        relatives = schema.fetch_include(resource, relname)
+        return None
+        
+    def fetch_include(self):
+        """ """
         return None
 
 
-class Collection(ResponseBuilder, IncludeMixin):
+class Collection(ResponseBuilder):
     """
     Builds a collection response. The primary :attr:`data` contains a list
     of resources.
@@ -160,16 +152,15 @@ class Collection(ResponseBuilder, IncludeMixin):
         ):
         """
         """
-        ResponseBuilder.__init__(self, request=request)
-        IncludeMixin.__init__(self, included=included)
+        super().__init__(request=request)
 
         #: A list of resources from the same type.
-        self.data = data or list()
+        self.data = data or dict()
 
         #: A list of all related resources, which should be included into the
         #: response.
         #: :seealso: :attr:`~jsonapi.request.Request.japi_include`
-        self.included = included or list()
+        self.included = included or dict()
 
         #: The JSON API links object.
         self.links = links or dict()
@@ -181,13 +172,43 @@ class Collection(ResponseBuilder, IncludeMixin):
         self.pagination = pagination
         return None
 
+    def _render_data(self):
+        """ """
+        japi_fields = self.__request.japi_fields
+        data = []
+
+        for japi_id, resource in self.data.items():
+            schema = self.__api.get_schema(japi_id.type)
+            encoded = schema.encode_resource(
+                resource,
+                is_data=True,
+                fieldset=japi_fields.get(japi_id.type),
+                included=self.include_memo[japi_id]
+            )
+        return None
+
+    def _render_included(self):
+        """ """
+        japi_fields = self.__request.japi_fields
+        data = []
+
+        for japi_id, resource in self.included.items():
+            schema = self.__api.get_schema(japi_id.type)
+            encoded = schema.encode_resource(
+                resource,
+                is_included=True,
+                fieldset=japi_fields.get(japi_id.type),
+                included=self.include_memo[japi_id]
+            )
+        return data
+
     def render(self):
         """
         """
         d = super().render()
-        d["data"] = self.api.serialize_many(self.data, self.request)
+        d["data"] = self.api.encode_many(self.data, context="data")
         if self.included:
-            d["included"] = self.api.serialize_many(self.included, self.request)
+            d["included"] = self.api.encode_many(self.included, context="include")
         if self.links:
             d["links"] = self.links
         if self.meta:
@@ -199,7 +220,7 @@ class Collection(ResponseBuilder, IncludeMixin):
         return d
 
 
-class Resource(ResponseBuilder, IncludeMixin):
+class Resource(ResponseBuilder):
     """
     Contains a resource or ``None`` as primary :attr:`data`.
 
@@ -222,7 +243,6 @@ class Resource(ResponseBuilder, IncludeMixin):
         """
         """
         ResponseBuilder.__init__(self, request=request)
-        IncludeMixin.__init__(self, included=included)
 
         self.data = data
         self.included = included or list()

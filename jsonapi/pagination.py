@@ -66,9 +66,11 @@ All helpers have a similar interface. Here is an example for the
 # std
 import logging
 import urllib.parse
+import re
 
 # local
 from .utilities import Symbol
+from .errors import BadRequest
 
 
 __all__ = [
@@ -95,6 +97,17 @@ class BasePagination(object):
         self._parsed_uri = urllib.parse.urlparse(uri)
         self._query_uri = urllib.parse.parse_qs(self._parsed_uri.query)
         return None
+
+    @classmethod
+    def from_request(self, request, **kargs):
+        """
+        Checks if the needed pagination parameters are present in the request
+        and if so, a new pagination instance with these parameters is returned
+        and *None* otherwise.
+
+        :seealso: :meth:`jsonapi.request.Request.get_query_argument`
+        """
+        raise NotImplementedError()
 
     @property
     def uri(self):
@@ -200,8 +213,8 @@ class LimitOffset(BasePagination):
         return None
 
     @classmethod
-    def from_uri(
-        self, request, total_resources, default_limit=DEFAULT_LIMIT
+    def from_request(
+            cls, request, total_resources, default_limit=DEFAULT_LIMIT
         ):
         """
         Extracts the current pagination values (*limit* and *offset*) from the
@@ -234,7 +247,7 @@ class LimitOffset(BasePagination):
 
         if offset%limit != 0:
             LOG.warning("The offset is not dividable by the limit.")
-        return cls(uri, limit, offset, total_resources)
+        return cls(request.uri, limit, offset, total_resources)
 
     def json_links(self):
         """
@@ -476,7 +489,7 @@ class Cursor(BasePagination):
             The cursor in the query string must match this regular expression.
             If it doesn't, an exception is raised.
         """
-        cursor = request.get_query_argument("page[cursor]", cls.BEGIN)
+        cursor = request.get_query_argument("page[cursor]", cls.FIRST)
         if cursor is not None and cursor_re \
             and (not re.fullmatch(cursor_re, cursor)):
             raise BadRequest(
@@ -492,7 +505,7 @@ class Cursor(BasePagination):
             )
         if limit is None:
             limit = default_limit
-        return cls(uri, limit, cursor)
+        return cls(request.uri, limit, cursor)
 
     def json_links(self, prev_cursor=None, next_cursor=None):
         """

@@ -106,6 +106,11 @@ class Request(object):
         assert isinstance(self.settings, dict)
         return None
 
+    @property
+    def g(self):
+        """Alias for :attr:`settings`."""
+        return self.settings
+
     @cached_property
     def parsed_uri(self):
         """
@@ -148,7 +153,7 @@ class Request(object):
 
         :seealso: https://tools.ietf.org/html/rfc7231#section-3.1.1.1
 
-        :todo: Parse the media parameters and return them.
+        :todo: Parse the content-type header correct.
         """
         content_type = self.headers.get("content-type", "")
         type_, *parameters = content_type.split(";")
@@ -359,7 +364,7 @@ class Request(object):
         """
         if isinstance(field, str):
             field = field.split(".")
-            
+
         for direction, field_ in self.japi_sort:
             print(field_, field)
             if field_ == field:

@@ -34,7 +34,7 @@ __all__ = [
 
 class Response(object):
     """
-    Contains all information needed for a creating a proper http response.
+    Contains all information needed to create a proper http response.
 
     :arg int status:
         The http status code
@@ -42,13 +42,10 @@ class Response(object):
         A dictionary containing all headers of the response.
     :arg bytes body:
         The body of the http response as bytes. This attribute may be None.
-    :arg file:
-        If not None, this is a file like object or a filename.
     """
 
-    def __init__(self, status=200, headers=None, body=None, file=None):
+    def __init__(self, status=200, headers=None, body=None):
         self.status = status
         self.headers = headers or dict()
         self.body = body
-        self.file = file
         return None

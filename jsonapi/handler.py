@@ -26,6 +26,11 @@
 jsonapi.handler
 ===============
 
+.. seealso::
+
+    :mod:`jsonapi.schema.handler` for the request handlers based on a
+    schema. (You don't have to use them, but they make your life simpler.)
+
 This module contains the base class for all *py-jsonapi* resource handlers.
 The implementation is straight forward::
 
@@ -77,6 +82,20 @@ class Handler(object):
         self.api = api
         return None
 
+    @property
+    def request(self):
+        """
+        The current request. This is a proxy for ``self.api.current_request``.
+        """
+        return self.api.current_request
+
+    @property
+    def g(self):
+        """
+        This is a proxy for ``self.api.current_request.settings.``
+        """
+        return self.api.current_request.settings
+
     def init_api(self, api):
         """
         Binds the handler to the *api*. This method can be called at most once.
@@ -99,33 +118,33 @@ class Handler(object):
             :class:`~jsonapi.response_builder.ResponseBuilder`
         """
         if request.method == "delete":
-            return self.delete(request)
+            return self.delete()
         elif request.method == "get":
-            return self.get(request)
+            return self.get()
         elif request.method == "head":
-            return self.head(request)
+            return self.head()
         elif request.method == "post":
-            return self.post(request)
+            return self.post()
         elif request.method == "patch":
-            return self.patch(request)
+            return self.patch()
         elif request.method == "options":
-            return self.options(request)
+            return self.options()
         raise errors.MethodNotAllowed()
 
-    def delete(self, request):
+    def delete(self):
         raise errors.MethodNotAllowed()
 
-    def get(self, request):
+    def get(self):
         raise errors.MethodNotAllowed()
 
-    def head(self, request):
+    def head(self):
         raise errors.MethodNotAllowed()
 
-    def post(self, request):
+    def post(self):
         raise errors.MethodNotAllowed()
 
-    def patch(self, request):
+    def patch(self):
         raise errors.MethodNotAllowed()
 
-    def options(self, request):
+    def options(self):
         raise errors.MethodNotAllowed()

@@ -175,3 +175,7 @@ pseudoxml:
 	$(SPHINXBUILD) -b pseudoxml $(ALLSPHINXOPTS) $(BUILDDIR)/pseudoxml
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
+
+livehtml:
+	sphinx-autobuild -z ../jsonapi -B -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+

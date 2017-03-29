@@ -29,10 +29,6 @@ jsonapi
 *py-jsonapi* can be used as toolbox or complete framework for creating a
 http://jsonapi.org compliant API.
 
-Each module aims to implement only one feature of the JSON API specifiction.
-Thus you can use most of them without an actual :class:`~jsonapi.api.API`
-instance and pick only the ones you need.
-
 .. Remember to add a .rst file for each Python module listed here in the
 .. correct docs folder.
 
@@ -40,31 +36,27 @@ instance and pick only the ones you need.
     :maxdepth: 1
 
     api
-    encoder
     errors
     handler
-    includer
     pagination
     request
     response
     response_builder
+    router
+    schema/index
     utilities
-    validation
-    validator
     version
 """
 
 # local
 from . import api
-from . import encoder
 from . import errors
 from . import handler
-from . import includer
 from . import pagination
 from . import request
 from . import response
 from . import response_builder
+from . import router
+from . import schema
 from . import utilities
-from . import validation
-from . import validator
 from . import version

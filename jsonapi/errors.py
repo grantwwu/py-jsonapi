@@ -71,12 +71,12 @@ __all__ = [
     "NotExtended",
 
     # JSONAPI errors
-    "InvalidDocument",
+    "ValidationError",
+    "InvalidType",
+    "InvalidValue",
     "UnresolvableIncludePath",
-    "ReadOnlyField",
     "UnsortableField",
     "UnsortableField",
-    "RelationshipNotFound",
     "ResourceNotFound"
 ]
 
@@ -104,7 +104,7 @@ class Error(Exception):
         of localization. The default value is the class name.
     :arg str detail:
         A human-readable explanation specific to this occurrence of the problem.
-    :arg str source_pointer:
+    :arg source_pointer:
         A JSON Pointer [RFC6901] to the associated entity in the request
         document [e.g. `"/data"` for a primary data object, or
         `"/data/attributes/title"` for a specific attribute].
@@ -126,7 +126,7 @@ class Error(Exception):
         self.code = code
         self.title = title if title is not None else type(self).__name__
         self.detail = detail
-        self.source_pointer = source_pointer
+        self.source_pointer = str(source_pointer)
         self.source_parameter = source_parameter
         self.meta = meta if meta is not None else dict()
         return None
@@ -443,7 +443,7 @@ class NotExtended(Error):
 # special JSONAPI errors
 # ----------------------
 
-class InvalidDocument(BadRequest):
+class ValidationError(BadRequest):
     """
     Raised, if the structure of a json document in a request body is invalid.
 
@@ -457,6 +457,40 @@ class InvalidDocument(BadRequest):
     """
 
 
+class InvalidValue(ValidationError):
+    """
+    Raised if an input value (part of a JSON API document) has an invalid
+    value.
+
+    :seealso: http://jsonapi.org/format/#document-structure
+    """
+
+
+class InvalidType(ValidationError):
+    """
+    Raised if an input value (part of a JSON API document) has the wrong type.
+
+    This type of exception is often raised during decoding.
+
+    :seealso: http://jsonapi.org/format/#document-structure
+    """
+
+
+class MissingField(ValidationError):
+    """
+    Raised if a field is required but not part of the input data.
+
+    :seealso: http://jsonapi.org/format/#document-structure
+    """
+
+    def __init__(self, type, field, **kargs):
+        kargs.setdefault(
+            "detail", "The field '{}.{}' is required.".format(type, field)
+        )
+        super().__init__(**kargs)
+        return None
+
+
 class UnresolvableIncludePath(BadRequest):
     """
     Raised if an include path does not exist. The include path is part
@@ -466,30 +500,15 @@ class UnresolvableIncludePath(BadRequest):
     :seealso: http://jsonapi.org/format/#fetching-includes
     """
 
-    def __init__(self, include_path, **kargs):
-        if not isinstance(include_path, str):
-            include_path = ".".join(include_path)
-        self.include_path = include_path
+    def __init__(self, path, **kargs):
+        if not isinstance(path, str):
+            path = ".".join(path)
 
-        super().__init__(
-            detail="The include path '{}' does not exist.".format(include_path),
-            source_parameter="include",
-            **kargs
+        kargs.setdefault(
+            "detail", "The include path '{}' does not exist.".format(path)
         )
-        return None
-
-
-class ReadOnlyField(Forbidden):
-    """
-    Raised, if a field's value can not be changed.
-    """
-
-    def __init__(self, typename, fieldname, **kargs):
-        self.typename = typename
-        self.fieldname = fieldname
-
-        detail = "The field '{}.{}' is read only.".format(typename, fieldname)
-        super().__init__(detail=detail, **kargs)
+        kargs.setdefault("source_parameter", "include")
+        super().__init__(**kargs)
         return None
 
 
@@ -500,16 +519,13 @@ class UnsortableField(BadRequest):
     :seealso: http://jsonapi.org/format/#fetching-sorting
     """
 
-    def __init__(self, typename, fieldname, **kargs):
-        self.typename = typename
-
-        if isinstance(fieldname, list):
-            fieldname = ".".join(fieldname)
-        self.fieldname = fieldname
-
-        detail = "The field '{}.{}' can not be used for sorting."\
-            .format(typename, fieldname)
-        super().__init__(detail=detail, source_parameter="sort", **kargs)
+    def __init__(self, type, field, **kargs):
+        kargs.setdefault(
+            "detail",
+            "The field '{}.{}' can not be used for sorting.".format(type, field)
+        )
+        kargs.setdefault("source_parameter", "sort")
+        super().__init__(**kargs)
         return None
 
 
@@ -521,44 +537,14 @@ class UnfilterableField(BadRequest):
     :seealso: http://jsonapi.org/format/#fetching-filtering
     """
 
-    def __init__(self, typename, fieldname, filtername, **kargs):
-        self.typename = typename
-        self.fieldname = fieldname
-        self.filtername = filtername
-
-        detail = "The field '{}.{}' does not support the '{}' filter."\
-            .format(typename, fieldname, filtername)
-        super().__init__(detail=detail, **kargs)
-        return None
-
-
-class FieldNotFound(BadRequest):
-    """
-    Raised, if a field does not exist on a type, but is referenced in a document
-    or the query string.
-    """
-
-    def __init__(self, typename, fieldname, **kargs):
-        self.typename = typename
-        self.fieldname = fieldname
-
-        detail = "The field '{}.{}' does not exist.".format(typename, fieldname)
-        super().__init__(detail=detail, **kargs)
-        return None
-
-
-class RelationshipNotFound(NotFound):
-    """
-    Raised if a relationship does not exist.
-    """
-
-    def __init__(self, typename, relname, **kargs):
-        self.typename = typename
-        self.relname = relname
-
-        detail = "The type '{}' has no relationship '{}'."\
-            .format(typename, relname)
-        super().__init__(detail=detail, **kargs)
+    def __init__(self, type, field, filtername, **kargs):
+        kargs.setdefault(
+            "detail",
+            "The field '{}.{}' does not support the '{}' filter."\
+            .format(type, field, filtername)
+        )
+        kargs.setdefault("source_parameter", "filter[{}]".format(field))
+        super().__init__(**kargs)
         return None
 
 
@@ -567,10 +553,10 @@ class ResourceNotFound(NotFound):
     Raised, if a resource does not exist.
     """
 
-    def __init__(self, identifier, **kargs):
-        self.identifier = identifier
-
-        detail = "The resource (type='{}', id='{}') does not exist."\
-            .format(*identifier)
-        super().__init__(detail=detail, **kargs)
+    def __init__(self, type, id, **kargs):
+        kargs.setdefault(
+            "detail",
+            "The resource (type='{}', id='{}') does not exist.".format(type, id)
+        )
+        super().__init__(**kargs)
         return None
