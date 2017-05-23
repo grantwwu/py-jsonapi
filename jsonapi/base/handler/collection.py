@@ -61,7 +61,7 @@ class CollectionHandler(BaseHandler):
 
     def get(self):
         """
-        Handles a GET request. This means to fetch many resourcs from the
+        Handles a GET request. This means to fetch many resources from the
         collection and return it.
 
         http://jsonapi.org/format/#fetching-resources

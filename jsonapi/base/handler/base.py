@@ -58,7 +58,7 @@ class BaseHandler(object):
 
     def handle(self):
         """
-        Handles a requested.
+        Handles a request.
         """
         if self.request.method == "head":
             return self.head()

@@ -163,7 +163,7 @@ class RelationshipHandler(BaseHandler):
             self.db, self.resource, self.relname, relationship_object
         )
 
-        # Save thte changes.
+        # Save the changes.
         self.db.save([self.resource])
         self.db.commit()
 

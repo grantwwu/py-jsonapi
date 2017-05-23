@@ -307,7 +307,7 @@ class Schema(object):
     def find_fields(self):
         """
         We search for fields instances on the :attr:`resource_class`. If we
-        find an attriute, relationship, constructor, ... definition we
+        find an attribute, relationship, constructor, ... definition we
         add it to the schema.
         """
         # Find all markers.
