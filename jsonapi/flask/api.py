@@ -139,7 +139,6 @@ class FlaskAPI(jsonapi.base.api.API):
 
         # Add the api to the jinja environment
         app.jinja_env.globals["jsonapi"] = current_api
-        return None
 
     def handle_request(self, path=None):
         """

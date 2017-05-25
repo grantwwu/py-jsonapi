@@ -181,7 +181,6 @@ class API(object):
             (uris["resource"], handler.ResourceHandler),
             (uris["relationships"], handler.RelationshipHandler)
         ])
-        return None
 
 
     def get_resource_class(self, typename, default=ARG_DEFAULT):
@@ -387,7 +386,7 @@ class API(object):
 
     def add_type(self, schema, **kargs):
         """
-        Adds the serializer to the API.
+        Registers a type to the API.
 
         :arg jsonapi.base.schema.Schema schema:
         """
